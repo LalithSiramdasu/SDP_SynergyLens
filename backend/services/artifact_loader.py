@@ -113,6 +113,19 @@ def quantum_artifact_status(load: bool = False) -> dict[str, Any]:
     return status
 
 
+def deployed_model_type_counts() -> dict[str, int]:
+    counts: dict[str, int] = {}
+    if (Config.MODELS_DIR / Config.PRIMARY_MODEL_FILE).exists():
+        counts["XGBoost"] = 1
+    if quantum_artifact_paths()["model"].exists():
+        counts["Quantum"] = 1
+    return counts
+
+
+def deployed_model_count() -> int:
+    return sum(deployed_model_type_counts().values())
+
+
 def _patch_xgboost_base_score(model: Any) -> None:
     if not hasattr(model, "get_booster"):
         return

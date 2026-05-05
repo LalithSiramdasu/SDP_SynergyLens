@@ -129,8 +129,10 @@ def model_performance_summary() -> dict[str, Any]:
     drug_count = len(artifact_loader.load_drug_directory())
     cell_count = len(artifact_loader.load_cell_line_directory())
     feature_count = len(artifact_loader.load_feature_columns())
+    model_type_counts = artifact_loader.deployed_model_type_counts()
+    model_count = sum(model_type_counts.values())
     model_info = {
-        "model_type": "XGBoost",
+        "model_type": "XGBoost + Quantum" if model_type_counts.get("Quantum") else "XGBoost",
         "model_file": Config.PRIMARY_MODEL_FILE,
         "feature_column_count": feature_count,
         "uses_xgboost_booster": True,
@@ -142,12 +144,12 @@ def model_performance_summary() -> dict[str, Any]:
             "total_cell_lines": cell_count,
             "total_drugs": drug_count,
             "feature_vector": feature_count,
-            "final_model_count": 1,
+            "final_model_count": model_count,
         },
         "model_summary": {
-            "total_models": 1,
+            "total_models": model_count,
             "model_type": model_info["model_type"],
-            "count_per_model_type": {"XGBoost": 1},
+            "count_per_model_type": model_type_counts,
         },
         "performance": {
             "deployed_final_average": {},

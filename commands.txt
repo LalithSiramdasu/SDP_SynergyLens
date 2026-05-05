@@ -11,4 +11,11 @@ cancer_type=Ovarian Cancer
 
 
 venv\scripts\activate
-python app.py
+python app.py               or      flask run
+
+netstat -ano | findstr :5000
+taskkill /PID [PID] /F
+
+
+netstat -ano | findstr ":5000" | findstr "LISTENING"
+taskkill /PID <PID_NUMBER> /F

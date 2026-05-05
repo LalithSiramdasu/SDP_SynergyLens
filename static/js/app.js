@@ -1653,7 +1653,7 @@ function applyProjectAssistantSize(size, options = {}) {
 }
 
 function loadProjectAssistantPosition() {
-  applyProjectAssistantPosition(loadStoredProjectAssistantPosition(), { persistCorrected: true });
+  applyProjectAssistantPosition(null);
 }
 
 function loadStoredProjectAssistantPosition() {
@@ -3290,6 +3290,9 @@ function normalizeMolecule(raw, title) {
   const structureAvailable = Boolean(svg);
   const profileFound = Boolean(raw && (raw.status === "success" || raw.metadata_found || raw.found || raw.molecule_found));
   const structureMessage = raw?.structure_message || raw?.message || raw?.error || "Structure image unavailable.";
+  const fallbackDetail = raw?.rdkit_available === false
+    ? "Install RDKit to render the 2D structure, formula, and molecular weight."
+    : "No 2D structure is available for this compound.";
   return {
     title,
     ok: profileFound,
@@ -3305,6 +3308,8 @@ function normalizeMolecule(raw, title) {
     structureAvailable,
     structureStatus: raw?.structure_status || (structureAvailable ? "available" : "unavailable"),
     structureMessage,
+    fallbackDetail,
+    rdkitAvailable: raw?.rdkit_available !== false,
     error: raw?.error || raw?.message || "Molecule structure was not found."
   };
 }
@@ -3333,6 +3338,8 @@ function moleculeCardShell(molecule, index) {
       <span>${escapeHtml(molecule.structureMessage || "No structure image is available for this compound.")}</span>
     </div>
   `;
+  const formulaText = molecule.molecularFormula || (molecule.rdkitAvailable ? "n/a" : "Unavailable without RDKit");
+  const weightText = molecule.molecularWeight || (molecule.rdkitAvailable ? "n/a" : "Unavailable without RDKit");
 
   return `
     <article class="drug-card">
@@ -3348,8 +3355,9 @@ function moleculeCardShell(molecule, index) {
           <div class="drug-meta-row"><span>NSC ID</span><span>${escapeHtml(String(molecule.requested))}</span></div>
           <div class="drug-meta-row"><span>Input drug value</span><span>${escapeHtml(String(molecule.inputValue || "n/a"))}</span></div>
           <div class="drug-meta-row"><span>Structure match</span><span>${structureStatusText}<small class="drug-meta-badge">${escapeHtml(molecule.structureStatus || "unavailable")}</small></span></div>
-          <div class="drug-meta-row"><span>Molecular Formula</span><span>${escapeHtml(molecule.molecularFormula || "n/a")}</span></div>
-          <div class="drug-meta-row"><span>Molecular Weight</span><span>${escapeHtml(String(molecule.molecularWeight || "n/a"))}</span></div>
+          ${molecule.structureAvailable ? "" : `<div class="drug-meta-row drug-meta-row--notice"><span>Fallback note</span><span>${escapeHtml(molecule.fallbackDetail)}</span></div>`}
+          <div class="drug-meta-row"><span>Molecular Formula</span><span>${escapeHtml(formulaText)}</span></div>
+          <div class="drug-meta-row"><span>Molecular Weight</span><span>${escapeHtml(String(weightText))}</span></div>
           <div class="drug-meta-row"><span>Structure Source</span><span>${escapeHtml(molecule.source || "n/a")}</span></div>
         </div>
       </div>

@@ -1967,37 +1967,47 @@ input::placeholder {
 
 .drug-card-body {
   display: grid;
-  grid-template-columns: 124px minmax(0, 1fr);
+  grid-template-columns: 150px minmax(0, 1fr);
+  align-items: start;
   gap: 18px;
   padding: 20px;
 }
 
 .drug-structure {
+  align-self: start;
+  width: 100%;
+  aspect-ratio: 1;
   display: grid;
   place-items: center;
-  min-height: 124px;
+  min-height: 0;
+  max-height: 150px;
   background: linear-gradient(180deg, var(--structure-top), var(--structure-bottom));
   border-radius: 20px;
   border: 1px solid var(--border);
+  overflow: hidden;
 }
 
 .drug-structure--unavailable {
   padding: 14px;
   text-align: center;
+  background: linear-gradient(180deg, #ffffff, #f3f8f6);
+  border-color: rgba(15, 118, 110, 0.18);
 }
 
 .drug-structure-placeholder {
   display: grid;
   gap: 6px;
+  justify-items: center;
 }
 
 .drug-structure-placeholder strong {
-  color: var(--text);
+  color: #18312c;
   font-size: 0.82rem;
+  line-height: 1.15;
 }
 
 .drug-structure-placeholder span {
-  color: var(--muted);
+  color: #557069;
   font-size: 0.74rem;
   line-height: 1.35;
 }
@@ -2005,7 +2015,8 @@ input::placeholder {
 .drug-structure img,
 .drug-structure svg {
   width: 100%;
-  height: 100%;
+  height: auto;
+  max-height: 100%;
   object-fit: contain;
 }
 
@@ -2020,8 +2031,9 @@ input::placeholder {
 }
 
 .drug-meta-row {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(120px, 0.42fr) minmax(0, 0.58fr);
+  align-items: start;
   gap: 14px;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--row-divider);
@@ -2034,6 +2046,8 @@ input::placeholder {
 
 .drug-meta-row span:first-child {
   color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.35;
 }
 
 .drug-meta-row span:last-child {
@@ -2041,7 +2055,20 @@ input::placeholder {
   color: var(--muted-strong);
   font-family: var(--mono);
   font-size: 12px;
+  line-height: 1.45;
   word-break: break-word;
+}
+
+.drug-meta-row--notice {
+  padding: 12px;
+  border: 1px solid rgba(15, 118, 110, 0.16);
+  border-radius: 14px;
+  background: var(--accent-soft);
+}
+
+.drug-meta-row--notice span:first-child,
+.drug-meta-row--notice span:last-child {
+  color: var(--accent-strong);
 }
 
 .drug-meta-badge {
@@ -2314,6 +2341,10 @@ body[data-theme="dark"] .drug-card-header h3 {
   justify-items: end;
   gap: 12px;
   pointer-events: none;
+}
+
+body[data-active-view="drugs"] .project-chat-widget {
+  display: none;
 }
 
 .project-chat-launcher,

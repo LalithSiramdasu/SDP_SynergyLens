@@ -42,8 +42,24 @@ def expect_error_json(response, route: str) -> dict:
     return data
 
 
+def expect_molecule_graceful(response, route: str) -> dict:
+    data = expect_success_json(response, route)
+    molecule = data.get("data") if isinstance(data.get("data"), dict) else data
+    expect(molecule.get("found") is True, f"{route} did not resolve molecule metadata")
+    expect(
+        molecule.get("molecule_found") is True
+        or (
+            molecule.get("rdkit_available") is False
+            and bool(molecule.get("structure_message"))
+        ),
+        f"{route} did not return structure data or a graceful RDKit fallback",
+    )
+    return data
+
+
 def run() -> int:
     payload = sample_payload()
+    quantum_payload = {"NSC1": 740, "NSC2": 754143, "CELLNAME": "OVCAR-3", "model_type": "quantum"}
 
     with app.test_client() as client:
         response = client.get("/")
@@ -52,24 +68,28 @@ def run() -> int:
 
         health = expect_success_json(client.get("/api/health"), "/api/health")
         expect(health["data"]["artifacts"]["model_loaded"] is True, "/api/health reports model not loaded")
+        expect(health.get("model_count") == artifact_loader.deployed_model_count(), "/api/health model count mismatch")
 
         expect_success_json(client.get("/api/about"), "/api/about")
         expect_success_json(client.get("/api/system-summary"), "/api/system-summary")
-        expect_success_json(client.get("/api/model-performance-summary"), "/api/model-performance-summary")
+        performance = expect_success_json(client.get("/api/model-performance-summary"), "/api/model-performance-summary")
+        expect(performance["assets"]["final_model_count"] == artifact_loader.deployed_model_count(), "/api/model-performance-summary model count mismatch")
         expect_success_json(client.get("/api/drugs?limit=all"), "/api/drugs")
         expect_success_json(client.get("/api/cell-lines"), "/api/cell-lines")
         expect_success_json(client.get("/api/demo-cases"), "/api/demo-cases")
 
         prediction = expect_success_json(client.post("/api/predict", json=payload), "/api/predict")
         expect("score" in prediction and "label" in prediction, "/api/predict missing score/label")
+        quantum = expect_success_json(client.post("/api/predict", json=quantum_payload), "/api/predict quantum")
+        expect(quantum.get("model_type") == "quantum" and "score" in quantum, "/api/predict quantum missing quantum score")
 
         expect_error_json(client.post("/api/predict", json={"NSC1": 999999999, "NSC2": payload["NSC2"], "CELLNAME": payload["CELLNAME"]}), "/api/predict invalid drug")
         expect_error_json(client.post("/api/predict", json={"NSC1": payload["NSC1"]}), "/api/predict missing fields")
 
-        molecule = expect_success_json(client.get(f"/api/molecule/{payload['NSC1']}"), "/api/molecule/<nsc>")
-        expect(molecule.get("molecule_found") is True, "/api/molecule did not return molecule data")
+        expect_molecule_graceful(client.get(f"/api/molecule/{payload['NSC1']}"), "/api/molecule/<nsc>")
         expect_error_json(client.get("/api/molecule/999999999"), "/api/molecule invalid drug")
-        expect_success_json(client.post("/api/molecule-pair", json={"NSC1": payload["NSC1"], "NSC2": payload["NSC2"]}), "/api/molecule-pair")
+        molecule_pair = expect_success_json(client.post("/api/molecule-pair", json={"NSC1": payload["NSC1"], "NSC2": payload["NSC2"]}), "/api/molecule-pair")
+        expect(molecule_pair["molecule_1"].get("found") is True and molecule_pair["molecule_2"].get("found") is True, "/api/molecule-pair did not resolve both molecules")
         expect_success_json(client.get(f"/api/drug_info/{payload['NSC1']}"), "/api/drug_info/<id>")
 
         explanation = expect_success_json(client.post("/api/explain", json=payload), "/api/explain")

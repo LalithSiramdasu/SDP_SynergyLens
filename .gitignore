@@ -42,3 +42,5 @@ batch/*
 node_modules/
 
 datasets/
+
+chatgpt.zip
