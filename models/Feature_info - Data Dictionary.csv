@@ -1,0 +1,34 @@
+Feature Name,Description
+depmap_id,DepMap cell line identifier.
+drugname1,Name of the first drug in the combination.
+drugname2,Name of the second drug in the combination.
+drug1,Identifier for the first drug.
+drug2,Identifier for the second drug.
+cancer,Type of cancer associated with the cell line.
+cell line,Name of the cell line.
+score,Synergy score or outcome metric for the drug combination.
+cut4,Combination Efficacy
+drug_combination,String representation of the drug combination.
+DD_maccs_maccs37,MACCS structural key 37 for the drug combination.
+DD_maccs_maccs38,MACCS structural key 38 for the drug combination.
+DD_maccs_maccs42,MACCS structural key 42 for the drug combination.
+DD_tox_Acute leukaemia,Toxicity indicator for acute leukaemia.
+DD_tox_Arthritis,Toxicity indicator for arthritis.
+DD_tox_Breast cancer,Toxicity indicator for breast cancer.
+DDP_Steroid hormone biosynthesis - Homo sapiens (human),Drug-drug pathway score for steroid hormone biosynthesis.
+DDP_Calcium signaling pathway - Homo sapiens (human),Drug-drug pathway score for calcium signaling.
+DDP_Apoptosis - Homo sapiens (human),Drug-drug pathway score for apoptosis.
+cnv_Steroid hormone biosynthesis - Homo sapiens (human),CNV score for steroid hormone biosynthesis pathway.
+cnv_Calcium signaling pathway - Homo sapiens (human),CNV score for calcium signaling pathway.
+cnv_Apoptosis - Homo sapiens (human),CNV score for apoptosis pathway.
+exp_Steroid hormone biosynthesis - Homo sapiens (human),Expression score for steroid hormone biosynthesis pathway.
+exp_Calcium signaling pathway - Homo sapiens (human),Expression score for calcium signaling pathway.
+exp_Apoptosis - Homo sapiens (human),Expression score for apoptosis pathway.
+methy_Steroid hormone biosynthesis - Homo sapiens (human),Methylation score for steroid hormone biosynthesis pathway.
+methy_Calcium signaling pathway - Homo sapiens (human),Methylation score for calcium signaling pathway.
+methy_Apoptosis - Homo sapiens (human),Methylation score for apoptosis pathway.
+mut_Steroid hormone biosynthesis - Homo sapiens (human),Mutation score for steroid hormone biosynthesis pathway.
+mut_Calcium signaling pathway - Homo sapiens (human),Mutation score for calcium signaling pathway.
+RNAi_Steroid hormone biosynthesis - Homo sapiens (human),RNAi score for steroid hormone biosynthesis pathway.
+RNAi_Calcium signaling pathway - Homo sapiens (human),RNAi score for calcium signaling pathway.
+RNAi_Apoptosis - Homo sapiens (human),RNAi score for apoptosis pathway.

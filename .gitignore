@@ -1,0 +1,44 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.DS_Store
+Thumbs.db
+
+# Local secrets and API keys
+.env
+.env.*
+!.env.example
+.gemini_keys.local
+
+# Runtime logs and local verification artifacts
+*.log
+logs/
+browser-profile*/
+browser-profile/
+chrome-profile/
+playwright-report/
+test-results/
+verify*.png
+*screenshot*.png
+browser-check*.png
+ui-check*.png
+
+# Runtime data
+uploads/*
+predictions/*
+outputs/*
+batch/*
+!uploads/.gitkeep
+!predictions/.gitkeep
+!outputs/.gitkeep
+
+# Frontend/build caches
+.cache/
+.parcel-cache/
+node_modules/
+
+datasets/

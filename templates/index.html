@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SynergyLens | Drug Synergy Workspace</title>
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+
+    <header class="hero panel reveal">
+      <div class="hero-copy">
+        <div class="hero-topbar">
+          <span class="eyebrow">Precision Oncology Workspace</span>
+          <div class="theme-toggle-wrap">
+            <label for="switch" class="toggle" aria-label="Toggle dark mode">
+              <input type="checkbox" class="input" id="switch" aria-label="Toggle theme">
+              <div class="icon icon--moon">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  width="32"
+                  height="32"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M9.528 1.718a.75.75 0 0 1 .162.819A8.97 8.97 0 0 0 9 6a9 9 0 0 0 9 9 8.97 8.97 0 0 0 3.463-.69.75.75 0 0 1 .981.98 10.503 10.503 0 0 1-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 0 1 .818.162z"
+                    clip-rule="evenodd"
+                  ></path>
+                </svg>
+              </div>
+              <div class="icon icon--sun">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  width="32"
+                  height="32"
+                >
+                  <path
+                    d="M12 2.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75zM7.5 12a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0zM18.894 6.166a.75.75 0 0 0-1.06-1.06l-1.591 1.59a.75.75 0 1 0 1.06 1.061l1.591-1.59zM21.75 12a.75.75 0 0 1-.75.75h-2.25a.75.75 0 0 1 0-1.5H21a.75.75 0 0 1 .75.75zM17.834 18.894a.75.75 0 0 0 1.06-1.06l-1.59-1.591a.75.75 0 1 0-1.061 1.06l1.59 1.591zM12 18a.75.75 0 0 1 .75.75V21a.75.75 0 0 1-1.5 0v-2.25A.75.75 0 0 1 12 18zM7.758 17.303a.75.75 0 0 0-1.061-1.06l-1.591 1.59a.75.75 0 0 0 1.06 1.061l1.591-1.59zM6 12a.75.75 0 0 1-.75.75H3a.75.75 0 0 1 0-1.5h2.25A.75.75 0 0 1 6 12zM6.697 7.757a.75.75 0 0 0 1.06-1.06l-1.59-1.591a.75.75 0 0 0-1.061 1.06l1.59 1.591z"
+                  ></path>
+                </svg>
+              </div>
+            </label>
+          </div>
+        </div>
+        <h1>SynergyLens</h1>
+        <p class="hero-lead">
+          Predict drug-combination synergy, inspect XAI feature impact, review compound metadata,
+          and process batch CSV files from one polished interface.
+        </p>
+        <div class="hero-actions">
+          <button type="button" class="ghost-button" data-view-trigger="predict">Start Prediction</button>
+          <button type="button" class="ghost-button ghost-button-secondary" data-view-trigger="batch">Open Batch</button>
+          <button type="button" class="ghost-button ghost-button-secondary" data-view-trigger="about">About Project</button>
+        </div>
+      </div>
+
+      <div class="hero-metrics">
+        <article class="metric-card"><span class="metric-label">Drugs</span><strong id="metric-drugs" class="metric-value">--</strong><span class="metric-note">indexed compounds</span></article>
+        <article class="metric-card"><span class="metric-label">Cell Lines</span><strong id="metric-cell-lines" class="metric-value">--</strong><span class="metric-note">prediction contexts</span></article>
+        <article class="metric-card"><span class="metric-label">Pipeline</span><strong class="metric-value">ML + XAI</strong><span class="metric-note">prediction and explanation</span></article>
+        <article class="metric-card metric-card--accent backend-health-card" id="backend-health-card">
+          <div class="health-card-top">
+            <span class="metric-label">Backend</span>
+            <span id="backend-status-badge" class="health-status-badge tone-neutral">Checking</span>
+          </div>
+          <strong id="backend-status-title" class="metric-value">Checking backend</strong>
+          <div class="health-stat-grid">
+            <span>available models: <strong id="metric-models">--</strong></span>
+            <span>available drugs: <strong id="health-drugs">--</strong></span>
+            <span>feature columns: <strong id="health-features">--</strong></span>
+          </div>
+          <span id="backend-status" class="metric-note">Waiting for /api/health</span>
+        </article>
+      </div>
+    </header>
+
+    <nav class="workspace-tabs panel reveal reveal-delay-1" aria-label="Workspace sections" role="tablist">
+      <button type="button" class="tab-button is-active" id="tab-home" data-view="home" role="tab" aria-controls="view-home" aria-selected="true">Home</button>
+      <button type="button" class="tab-button" id="tab-predict" data-view="predict" role="tab" aria-controls="view-predict" aria-selected="false">Predict</button>
+      <button type="button" class="tab-button" id="tab-drugs" data-view="drugs" role="tab" aria-controls="view-drugs" aria-selected="false">Molecules</button>
+      <button type="button" class="tab-button" id="tab-explain" data-view="explain" role="tab" aria-controls="view-explain" aria-selected="false">Explain AI</button>
+      <button type="button" class="tab-button" id="tab-batch" data-view="batch" role="tab" aria-controls="view-batch" aria-selected="false">Batch</button>
+      <button type="button" class="tab-button" id="tab-about" data-view="about" role="tab" aria-controls="view-about" aria-selected="false">About</button>
+    </nav>
+
+    <main class="workspace">
+      <section id="view-home" class="view is-active" role="tabpanel" aria-labelledby="tab-home" aria-hidden="false">
+        <div class="home-grid">
+          <article class="panel home-intro reveal">
+            <span class="section-kicker">Workspace Home</span>
+            <h2 class="section-title">Choose a SynergyLens workflow</h2>
+            <p class="section-copy">Jump between prediction, molecule lookup, Explain AI, and batch processing while keeping each result in place.</p>
+            <div class="home-actions">
+              <button type="button" class="primary-button" data-view-trigger="predict">Start Prediction</button>
+              <button type="button" class="secondary-button" data-view-trigger="batch">Open Batch</button>
+            </div>
+          </article>
+          <article class="panel home-route-card reveal reveal-delay-1">
+            <span class="mini-label">Predict</span>
+            <strong>ComboScore readout</strong>
+            <p>Run a paired drug prediction for a selected cell line.</p>
+            <button type="button" class="secondary-button" data-view-trigger="predict">Start Prediction</button>
+          </article>
+          <article class="panel home-route-card reveal reveal-delay-1">
+            <span class="mini-label">Molecules</span>
+            <strong>Compound profiles</strong>
+            <p>View RDKit structure cards and molecule metadata.</p>
+            <button type="button" class="secondary-button" data-view-trigger="drugs">View Molecules</button>
+          </article>
+          <article class="panel home-route-card reveal reveal-delay-2">
+            <span class="mini-label">Explain AI</span>
+            <strong>XAI contributors</strong>
+            <p>Inspect features that push ComboScore upward or downward.</p>
+            <button type="button" class="secondary-button" data-view-trigger="explain">Explain AI</button>
+          </article>
+          <article class="panel home-route-card reveal reveal-delay-2">
+            <span class="mini-label">Batch</span>
+            <strong>CSV processing</strong>
+            <p>Upload multiple drug pairs and download processed output.</p>
+            <button type="button" class="secondary-button" data-view-trigger="batch">Open Batch</button>
+          </article>
+        </div>
+      </section>
+
+      <section id="view-predict" class="view" role="tabpanel" aria-labelledby="tab-predict" aria-hidden="true">
+        <div class="workspace-grid workspace-grid--main">
+          <aside class="panel control-panel reveal">
+            <div class="section-header">
+              <span class="section-kicker">Model Input</span>
+              <h2 class="section-title">Synergy Prediction</h2>
+              <p class="section-copy">Choose two drugs and a biological setting to estimate their interaction score.</p>
+            </div>
+            <div id="predict-alert" class="inline-alert" role="alert" hidden></div>
+            <div class="form-stack">
+              <div class="field-group autocomplete-wrap">
+                <label for="drug1-input">Drug 1</label>
+                <div class="input-shell"><span class="input-chip">D1</span><input type="text" id="drug1-input" placeholder="Search NSC" autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="drug1-list drug1-validation" aria-describedby="drug1-validation" data-drug-search data-list-id="drug1-list" data-hidden-id="drug1-id"></div>
+                <input type="hidden" id="drug1-id">
+                <div class="autocomplete-list" id="drug1-list" role="listbox"></div>
+                <p id="drug1-validation" class="validation-message is-neutral" aria-live="polite">Loading valid drugs...</p>
+              </div>
+              <div class="field-group autocomplete-wrap">
+                <label for="drug2-input">Drug 2</label>
+                <div class="input-shell"><span class="input-chip">D2</span><input type="text" id="drug2-input" placeholder="Search NSC" autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="drug2-list drug2-validation" aria-describedby="drug2-validation" data-drug-search data-list-id="drug2-list" data-hidden-id="drug2-id"></div>
+                <input type="hidden" id="drug2-id">
+                <div class="autocomplete-list" id="drug2-list" role="listbox"></div>
+                <p id="drug2-validation" class="validation-message is-neutral" aria-live="polite">Loading valid drugs...</p>
+              </div>
+              <div class="field-group">
+                <label for="cell-line">Cell Line</label>
+                <div class="select-shell">
+                  <select id="cell-line" aria-describedby="cell-line-validation">
+                    <option value="">Loading cell lines...</option>
+                  </select>
+                </div>
+                <p id="cell-line-validation" class="validation-message is-neutral" aria-live="polite">Loading valid cell lines...</p>
+              </div>
+              <div class="field-group">
+                <label for="model-type">Model</label>
+                <div class="select-shell">
+                  <select id="model-type">
+                    <option value="classical" selected>Classical model</option>
+                    <option value="quantum">Quantum model</option>
+                  </select>
+                </div>
+              </div>
+              <button type="button" class="primary-button" id="predict-btn" disabled><span id="predict-btn-text">Predict Synergy</span><span id="predict-spinner" class="button-spinner" aria-hidden="true"></span></button>
+            </div>
+            <div class="demo-panel">
+              <div class="demo-heading">
+                <span class="section-kicker">Test Examples</span>
+                <h3>Load Demo Cases</h3>
+              </div>
+              <div id="demo-cases" class="demo-case-grid">
+                <div class="demo-loading">Loading demo cases...</div>
+              </div>
+            </div>
+            <div class="history-panel" aria-label="Recent predictions">
+              <div class="history-header">
+                <div>
+                  <span class="section-kicker">Local History</span>
+                  <h3>Recent Predictions</h3>
+                </div>
+                <button type="button" class="history-clear-button" id="clear-history-btn" disabled>Clear</button>
+              </div>
+              <div id="history-list" class="history-list" aria-live="polite">
+                <div class="history-empty">Successful predictions will appear here.</div>
+              </div>
+            </div>
+          </aside>
+
+          <div class="results-stack">
+            <article class="panel info-panel reveal reveal-delay-1">
+              <div class="mini-grid">
+                <div class="mini-card"><span class="mini-label">Select</span><strong>Drug Pair</strong><p>Fast autocomplete over the project drug library.</p></div>
+                <div class="mini-card"><span class="mini-label">Context</span><strong>Cell Model</strong><p>Attach a cell line; model selection is automatic.</p></div>
+                <div class="mini-card"><span class="mini-label">Interpret</span><strong>Score Band</strong><p>Read synergy, neutral, or antagonistic behavior quickly.</p></div>
+              </div>
+            </article>
+
+            <article class="panel result-panel reveal reveal-delay-2">
+              <div class="panel-header panel-header--spread">
+                <div>
+                  <span class="section-kicker">Output</span>
+                  <h2 class="section-title">Synergy Readout</h2>
+                  <p class="section-copy">Gauge, result label, and short interpretation.</p>
+                </div>
+                <span class="status-pill tone-neutral" id="score-pill">Awaiting input</span>
+              </div>
+
+              <div id="results-empty" class="empty-state">
+                <div class="empty-illustration"><div class="pulse-ring"></div><div class="pulse-core"></div></div>
+                <h3>No prediction yet</h3>
+                <p>Run a prediction to populate the model score and context summary.</p>
+              </div>
+
+              <div id="prediction-loader" class="prediction-loader" hidden aria-live="polite" aria-busy="true">
+                <div class="prediction-loader-ring" aria-hidden="true"></div>
+                <p id="prediction-loader-message" class="prediction-loader-message">Validating inputs...</p>
+              </div>
+
+              <div id="results-content" class="result-content" hidden>
+                <div class="gauge-card">
+                  <div class="gauge-stage">
+                    <svg class="gauge-svg" viewBox="0 0 260 190" aria-hidden="true">
+                      <path class="gauge-track" d="M 35 122 A 95 95 0 0 1 225 122" pathLength="100"></path>
+                      <path id="gauge-arc" class="gauge-arc" d="M 35 122 A 95 95 0 0 1 225 122" pathLength="100"></path>
+                      <g id="gauge-ticks" class="gauge-ticks"></g>
+                      <g id="gauge-scale-labels" class="gauge-scale-labels"></g>
+                      <g id="gauge-needle" class="gauge-needle">
+                        <path class="gauge-needle-pointer" d="M 126.5 123 L 130 52 L 133.5 123 Z"></path>
+                        <circle class="gauge-hub-ring" cx="130" cy="122" r="11"></circle>
+                        <circle class="gauge-hub-core" cx="130" cy="122" r="6"></circle>
+                      </g>
+                    </svg>
+                    <div class="gauge-value"><strong id="score-value">0.00</strong><span id="score-label">Awaiting input</span></div>
+                  </div>
+                  <div class="gauge-axis" aria-hidden="true">
+                    <span class="axis-strong-antagonism"><strong>-60 to -20</strong><em>Strong antagonism</em></span>
+                    <span class="axis-moderate-antagonism"><strong>-20 to -4</strong><em>Antagonism</em></span>
+                    <span class="axis-neutral"><strong>-4 to +4</strong><em>Neutral / weak</em></span>
+                    <span class="axis-moderate-synergy"><strong>+4 to +20</strong><em>Synergy</em></span>
+                    <span class="axis-strong-synergy"><strong>+20 to +60</strong><em>Strong synergy</em></span>
+                  </div>
+                  <p class="gauge-note">Gauge display scale: -60 to +60 ComboScore, clamped for visualization.</p>
+                </div>
+                <div class="pair-banner">
+                  <div><span class="pair-label">Drug Pair</span><div class="pair-names"><strong id="r-drug1">Drug 1</strong><span>+</span><strong id="r-drug2">Drug 2</strong></div></div>
+                  <div class="pair-context"><span id="r-cell">Cell line</span><span id="r-cancer">Model context</span></div>
+                </div>
+                <div class="context-grid">
+                  <article class="context-tile"><span>Response</span><strong id="r-level">Pending</strong></article>
+                  <article class="context-tile"><span>Cell Line</span><strong id="r-cell-tile">Pending</strong></article>
+                  <article class="context-tile"><span>Model</span><strong id="r-cancer-tile">Pending</strong></article>
+                </div>
+                <aside class="safety-note" aria-label="Prediction safety note">
+                  <span>Screening confidence: model-based estimate, not a calibrated probability</span>
+                  <p>This is a machine-learning screening prediction. It is not biological proof and not clinical advice. Promising synergy predictions should be validated experimentally.</p>
+                </aside>
+                <article class="interpretation-card"><span class="section-kicker">Interpretation</span><div id="score-summary" class="result-story">The model interpretation will appear here after prediction.</div></article>
+                <div class="report-actions">
+                  <button type="button" class="secondary-button report-download-button" id="prediction-report-btn" disabled>Download Prediction Report</button>
+                  <button type="button" class="primary-button prediction-assistant-button" id="open-prediction-assistant-btn" disabled>Ask Prediction Assistant</button>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-explain" class="view" role="tabpanel" aria-labelledby="tab-explain" aria-hidden="true">
+        <div class="workspace-grid workspace-grid--main">
+          <aside class="panel control-panel reveal">
+            <div class="section-header">
+              <span class="section-kicker">Explainability</span>
+              <h2 class="section-title">XAI Feature Impact</h2>
+              <p class="section-copy">Use the same drug pair and context to inspect the features driving the score.</p>
+            </div>
+            <div id="explain-alert" class="inline-alert" role="alert" hidden></div>
+            <div class="form-stack">
+              <div class="field-group autocomplete-wrap">
+                <label for="edrug1-input">Drug 1</label>
+                <div class="input-shell"><span class="input-chip">D1</span><input type="text" id="edrug1-input" placeholder="Search NSC" autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="edrug1-list edrug1-validation" aria-describedby="edrug1-validation" data-drug-search data-list-id="edrug1-list" data-hidden-id="edrug1-id"></div>
+                <input type="hidden" id="edrug1-id">
+                <div class="autocomplete-list" id="edrug1-list" role="listbox"></div>
+                <p id="edrug1-validation" class="validation-message is-neutral" aria-live="polite">Loading valid drugs...</p>
+              </div>
+              <div class="field-group autocomplete-wrap">
+                <label for="edrug2-input">Drug 2</label>
+                <div class="input-shell"><span class="input-chip">D2</span><input type="text" id="edrug2-input" placeholder="Search NSC" autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="edrug2-list edrug2-validation" aria-describedby="edrug2-validation" data-drug-search data-list-id="edrug2-list" data-hidden-id="edrug2-id"></div>
+                <input type="hidden" id="edrug2-id">
+                <div class="autocomplete-list" id="edrug2-list" role="listbox"></div>
+                <p id="edrug2-validation" class="validation-message is-neutral" aria-live="polite">Loading valid drugs...</p>
+              </div>
+              <div class="field-group">
+                <label for="ecell-line">Cell Line</label>
+                <div class="select-shell">
+                  <select id="ecell-line" aria-describedby="ecell-line-validation">
+                    <option value="">Loading cell lines...</option>
+                  </select>
+                </div>
+                <p id="ecell-line-validation" class="validation-message is-neutral" aria-live="polite">Loading valid cell lines...</p>
+              </div>
+              <button type="button" class="primary-button" id="explain-btn" disabled><span id="explain-btn-text">Generate Explanation</span><span id="explain-spinner" class="button-spinner" aria-hidden="true"></span></button>
+            </div>
+          </aside>
+
+          <article class="panel chart-panel reveal reveal-delay-1">
+            <div class="panel-header panel-header--spread">
+              <div>
+                <span class="section-kicker">Top Drivers</span>
+                <h2 class="section-title">XAI Contribution Map</h2>
+                <p class="section-copy">Teal bars push the ComboScore upward toward synergy. Red bars pull the ComboScore downward toward antagonism.</p>
+              </div>
+              <div class="legend-group"><span><i class="legend-swatch legend-swatch--synergy"></i> More synergistic</span><span><i class="legend-swatch legend-swatch--antagonism"></i> More antagonistic</span></div>
+            </div>
+            <div id="shap-empty" class="empty-state empty-state--compact"><h3>Explanation panel ready</h3><p>Run an explanation request to render the top XAI features.</p></div>
+            <div id="explain-loader" class="prediction-loader inline-loader" hidden aria-live="polite" aria-busy="true">
+              <div class="prediction-loader-ring" aria-hidden="true"></div>
+              <p id="explain-loader-message" class="prediction-loader-message">Validating prediction input...</p>
+            </div>
+            <div id="shap-content" class="chart-content" hidden>
+              <div class="chart-shell"><canvas id="shap-chart"></canvas></div>
+              <div class="meta-grid">
+                <article class="meta-card"><span>Prediction</span><strong id="shap-prediction">--</strong></article>
+                <article class="meta-card"><span>Base Value</span><strong id="shap-base">--</strong></article>
+              </div>
+              <p id="shap-base-info" class="footnote">No explanation computed yet.</p>
+              <aside class="safety-note safety-note--compact" aria-label="Explain AI safety note">
+                <span>Screening confidence: model-based estimate, not a calibrated probability</span>
+                <p>This is a machine-learning screening prediction. It is not biological proof and not clinical advice. Promising synergy predictions should be validated experimentally.</p>
+              </aside>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="view-drugs" class="view" role="tabpanel" aria-labelledby="tab-drugs" aria-hidden="true">
+        <div class="workspace-grid workspace-grid--main">
+          <aside class="panel control-panel reveal">
+            <div class="section-header">
+              <span class="section-kicker">Reference</span>
+              <h2 class="section-title">Compound Lookup</h2>
+              <p class="section-copy">Fetch structure images and molecular metadata for two compounds side by side.</p>
+            </div>
+            <div id="drug-alert" class="inline-alert" role="alert" hidden></div>
+            <div class="form-stack">
+              <div class="field-group autocomplete-wrap">
+                <label for="ddrug1-input">Drug 1</label>
+                <div class="input-shell"><span class="input-chip">D1</span><input type="text" id="ddrug1-input" placeholder="Search NSC" autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="ddrug1-list ddrug1-validation" aria-describedby="ddrug1-validation" data-drug-search data-list-id="ddrug1-list" data-hidden-id="ddrug1-id"></div>
+                <input type="hidden" id="ddrug1-id">
+                <div class="autocomplete-list" id="ddrug1-list" role="listbox"></div>
+                <p id="ddrug1-validation" class="validation-message is-neutral" aria-live="polite">Loading valid drugs...</p>
+              </div>
+              <div class="field-group autocomplete-wrap">
+                <label for="ddrug2-input">Drug 2</label>
+                <div class="input-shell"><span class="input-chip">D2</span><input type="text" id="ddrug2-input" placeholder="Search NSC" autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="ddrug2-list ddrug2-validation" aria-describedby="ddrug2-validation" data-drug-search data-list-id="ddrug2-list" data-hidden-id="ddrug2-id"></div>
+                <input type="hidden" id="ddrug2-id">
+                <div class="autocomplete-list" id="ddrug2-list" role="listbox"></div>
+                <p id="ddrug2-validation" class="validation-message is-neutral" aria-live="polite">Loading valid drugs...</p>
+              </div>
+              <button type="button" class="primary-button" id="drug-info-btn" disabled><span id="dinfo-btn-text">Load Drug Details</span><span id="dinfo-spinner" class="button-spinner" aria-hidden="true"></span></button>
+            </div>
+          </aside>
+
+          <article class="panel drug-panel reveal reveal-delay-1">
+            <div class="panel-header">
+              <span class="section-kicker">PubChem View</span>
+              <h2 class="section-title">Compound Profiles</h2>
+            </div>
+            <div id="drug-loader" class="prediction-loader inline-loader" hidden aria-live="polite" aria-busy="true">
+              <div class="prediction-loader-ring" aria-hidden="true"></div>
+              <p id="drug-loader-message" class="prediction-loader-message">Validating drug NSC values...</p>
+            </div>
+            <div id="drug-cards-area" class="drug-cards-grid">
+              <div class="empty-state empty-state--compact"><h3>No drug cards yet</h3><p>Load two compounds to compare molecular details.</p></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="view-batch" class="view" role="tabpanel" aria-labelledby="tab-batch" aria-hidden="true">
+        <div class="batch-grid">
+          <article class="panel control-panel reveal">
+            <div class="section-header">
+              <span class="section-kicker">Batch Processing</span>
+              <h2 class="section-title">CSV Upload</h2>
+              <p class="section-copy">Upload a file and receive a downloadable prediction CSV with a live preview.</p>
+            </div>
+            <div id="batch-alert" class="inline-alert" role="alert" hidden></div>
+            <label class="drop-zone" id="drop-zone" for="csv-file">
+              <input type="file" id="csv-file" accept=".csv" hidden>
+              <span class="drop-icon">CSV</span>
+              <strong id="drop-zone-title">Drop your file here</strong>
+              <p>or click to browse. Maximum upload size: 10 MB.</p>
+              <code>NSC1, NSC2, CELLNAME</code>
+            </label>
+            <button type="button" class="secondary-button sample-csv-button" id="sample-csv-btn">Download sample CSV</button>
+            <button type="button" class="primary-button batch-run-button" id="batch-run-btn" disabled>
+              <span id="batch-run-btn-text">Run Batch Prediction</span>
+              <span id="batch-run-spinner" class="button-spinner" aria-hidden="true"></span>
+            </button>
+          </article>
+
+          <article class="panel control-panel reveal reveal-delay-1">
+            <div class="section-header">
+              <span class="section-kicker">Checklist</span>
+              <h2 class="section-title">Expected Format</h2>
+            </div>
+            <div class="checklist">
+              <div class="check-item"><span>1</span><p>Include `NSC1`, `NSC2`, and `CELLNAME` in every CSV row.</p></div>
+              <div class="check-item"><span>2</span><p>Use NSC identifiers from the loaded project drug list.</p></div>
+              <div class="check-item"><span>3</span><p>The preview table below mirrors the prediction CSV saved by the backend.</p></div>
+            </div>
+          </article>
+        </div>
+
+        <article class="panel batch-panel reveal reveal-delay-2">
+          <div class="panel-header panel-header--spread">
+            <div>
+              <span class="section-kicker">Results</span>
+              <h2 class="section-title">Batch Preview</h2>
+              <p class="section-copy">Summary stats and the first rows of the processed output.</p>
+            </div>
+            <button type="button" class="secondary-button" id="download-btn" disabled>Download CSV</button>
+          </div>
+          <div id="batch-loader" class="prediction-loader inline-loader" hidden aria-live="polite" aria-busy="true">
+            <div class="prediction-loader-ring" aria-hidden="true"></div>
+            <p id="batch-loader-message" class="prediction-loader-message">Reading uploaded CSV...</p>
+          </div>
+          <div id="batch-result" class="batch-result">
+            <div class="batch-stats" id="batch-stats"></div>
+            <aside class="safety-note safety-note--compact" aria-label="Batch prediction safety note">
+              <span>Screening confidence: model-based estimate, not a calibrated probability</span>
+              <p>This is a machine-learning screening prediction. It is not biological proof and not clinical advice. Promising synergy predictions should be validated experimentally.</p>
+            </aside>
+            <p class="batch-scroll-hint" id="batch-scroll-hint" hidden>Scroll horizontally inside the table to view all columns.</p>
+            <div class="table-shell batch-table-scroll" id="batch-table-scroll" tabindex="0" aria-label="Batch prediction preview table">
+              <table id="batch-table"><thead><tr id="batch-thead"></tr></thead><tbody id="batch-tbody"></tbody></table>
+            </div>
+          </div>
+          <div id="batch-empty" class="empty-state empty-state--compact"><h3>Batch results will appear here</h3><p>Process a CSV to unlock the preview and download action.</p></div>
+        </article>
+      </section>
+
+      <section id="view-prediction-chat" class="view" role="tabpanel" aria-label="Prediction Assistant" aria-hidden="true">
+        <article class="panel prediction-assistant-panel reveal">
+          <div class="panel-header panel-header--spread">
+            <div>
+              <span class="section-kicker">Dynamic Assistant</span>
+              <h2 class="section-title">Prediction Assistant</h2>
+              <p class="section-copy">Ask about the latest NSC pair, cell line, ComboScore, model, and interpretation.</p>
+            </div>
+            <span class="status-pill tone-neutral" id="prediction-chat-status">Locked</span>
+          </div>
+
+          <div id="prediction-chat-locked" class="empty-state empty-state--compact">
+            <h3>Run a prediction first</h3>
+            <p>Run a prediction first to unlock prediction-aware chat.</p>
+            <button type="button" class="primary-button" data-view-trigger="predict">Go to Predict</button>
+          </div>
+
+          <div class="prediction-assistant" id="prediction-assistant" hidden>
+            <div class="prediction-chat-context" aria-label="Prediction Assistant context">
+              <span><strong id="prediction-chat-pair">NSC -- + NSC --</strong></span>
+              <span id="prediction-chat-cell">Cell line --</span>
+              <span id="prediction-chat-score">ComboScore --</span>
+              <span id="prediction-chat-model">Model --</span>
+            </div>
+            <div class="prediction-chat-messages" id="prediction-chat-messages" aria-live="polite"></div>
+            <div class="prediction-chat-suggestions" id="prediction-chat-suggestions">
+              <button type="button" data-prediction-chat-question="Explain this result">Explain this result</button>
+              <button type="button" data-prediction-chat-question="Why is this synergistic?">Why is this synergistic?</button>
+              <button type="button" data-prediction-chat-question="What does this score mean?">What does this score mean?</button>
+              <button type="button" data-prediction-chat-question="What model was used?">What model was used?</button>
+              <button type="button" data-prediction-chat-question="Why predict both directions?">Why predict both directions?</button>
+              <button type="button" data-prediction-chat-question="Is this clinical advice?">Is this clinical advice?</button>
+              <button type="button" data-prediction-chat-question="What should I check next?">What should I check next?</button>
+              <button type="button" data-prediction-chat-question="Which features caused this?">Which features caused this?</button>
+            </div>
+            <form class="prediction-chat-form" id="prediction-chat-form">
+              <label class="sr-only" for="prediction-chat-input">Ask about this prediction</label>
+              <input type="text" id="prediction-chat-input" placeholder="Ask about this prediction..." autocomplete="off">
+              <button type="submit" id="prediction-chat-send">Ask</button>
+            </form>
+          </div>
+        </article>
+      </section>
+
+      <section id="view-about" class="view" role="tabpanel" aria-labelledby="tab-about" aria-hidden="true">
+        <article class="panel about-panel reveal">
+          <div class="panel-header">
+            <span class="section-kicker">Project Note</span>
+            <h2 class="section-title">NCI ALMANAC ComboScore Deployment</h2>
+            <p class="section-copy">SynergyLens is a Flask deployment app for final Step 6 models. It validates NSC inputs, builds the exact 526-feature model vector, selects the best model per cell line, predicts both drug orders, and averages the final ComboScore.</p>
+          </div>
+          <div class="about-grid">
+            <article class="mini-card">
+              <span class="mini-label">Target</span>
+              <strong>ComboScore</strong>
+              <p>Positive values suggest stronger-than-expected inhibition and synergy. Negative values suggest antagonism.</p>
+            </article>
+            <article class="mini-card">
+              <span class="mini-label">Model</span>
+              <strong>Automatic Selection</strong>
+              <p>The backend uses the final Step 6 registry. Users never choose RandomForest, XGBoost, CatBoost, or LightGBM manually.</p>
+            </article>
+            <article class="mini-card">
+              <span class="mini-label">Safety</span>
+              <strong>Screening Only</strong>
+              <p>Predictions and XAI explanations are machine-learning screening estimates, not calibrated probabilities, biological proof, or clinical advice. Promising synergy predictions should be validated experimentally.</p>
+            </article>
+          </div>
+        </article>
+
+        <article class="panel model-performance-panel reveal reveal-delay-1">
+          <div class="panel-header panel-header--spread">
+            <div>
+              <span class="section-kicker">Model Performance</span>
+              <h2 class="section-title">Project Transparency</h2>
+              <p class="section-copy" id="model-performance-explanation">Loading final model summary...</p>
+            </div>
+            <span class="status-pill tone-neutral" id="model-performance-status">Loading</span>
+          </div>
+
+          <div class="performance-metric-grid">
+            <article class="stat-card"><strong id="performance-cell-lines">--</strong><span>Total Cell Lines</span></article>
+            <article class="stat-card"><strong id="performance-drugs">--</strong><span>Total Drugs</span></article>
+            <article class="stat-card"><strong id="performance-features">--</strong><span>Feature Vector</span></article>
+            <article class="stat-card"><strong id="performance-models">--</strong><span>Final Models</span></article>
+          </div>
+
+          <div class="model-performance-layout">
+            <article class="performance-card">
+              <h3>Model Types Used</h3>
+              <p>Final Step 6 deployment uses one selected model per cell line.</p>
+              <div id="model-type-counts" class="model-count-list">
+                <span class="model-count-empty">Loading model counts...</span>
+              </div>
+            </article>
+
+            <article class="performance-card">
+              <h3>Average Test Performance</h3>
+              <p id="performance-average-summary">Loading performance metrics...</p>
+              <div class="table-shell performance-table-shell">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Model</th>
+                      <th>Mean R2</th>
+                      <th>Mean Pearson Rp</th>
+                      <th>Mean RMSE</th>
+                      <th>Mean MAE</th>
+                    </tr>
+                  </thead>
+                  <tbody id="performance-table-body">
+                    <tr><td colspan="5">Loading model performance...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <aside class="project-chat-widget" aria-label="Project Assistant">
+    <button type="button" class="project-chat-launcher" id="project-chat-toggle" aria-expanded="false" aria-controls="project-chat-panel">
+      <span class="project-chat-launcher-dot" aria-hidden="true"></span>
+      Project Assistant
+    </button>
+
+    <section class="project-chat-panel" id="project-chat-panel" hidden>
+      <div class="project-chat-header">
+        <div>
+          <span class="section-kicker">Project Help</span>
+          <h2>Project Assistant</h2>
+          <p>Ask about SynergyLens, ComboScore, models, XAI, batch format, and safety.</p>
+        </div>
+        <button type="button" class="project-chat-close" id="project-chat-close" aria-label="Close Project Assistant">Close</button>
+      </div>
+
+      <div class="project-chat-messages" id="project-chat-messages" aria-live="polite">
+        <div class="project-chat-message project-chat-message--assistant">
+          <p>Hello. I can answer general project questions about SynergyLens, ComboScore, model flow, Explain AI, batch CSV format, and safety.</p>
+        </div>
+      </div>
+
+      <div class="project-chat-suggestions" id="project-chat-suggestions" aria-label="Suggested project questions">
+        <div class="project-chat-suggestion-label">Suggested topics</div>
+        <div class="project-chat-topics" role="list" aria-label="Project Assistant topics">
+          <button type="button" class="project-chat-topic-btn is-active" data-chat-topic="basics" aria-pressed="true">Basics</button>
+          <button type="button" class="project-chat-topic-btn" data-chat-topic="prediction" aria-pressed="false">Prediction</button>
+          <button type="button" class="project-chat-topic-btn" data-chat-topic="xai" aria-pressed="false">XAI</button>
+          <button type="button" class="project-chat-topic-btn" data-chat-topic="batch" aria-pressed="false">Batch</button>
+          <button type="button" class="project-chat-topic-btn" data-chat-topic="molecules" aria-pressed="false">Molecules</button>
+          <button type="button" class="project-chat-topic-btn" data-chat-topic="backend" aria-pressed="false">Backend</button>
+          <button type="button" class="project-chat-topic-btn" data-chat-topic="safety" aria-pressed="false">Safety</button>
+        </div>
+        <div class="project-chat-topic-questions" aria-label="Basics questions">
+          <button type="button" class="project-chat-question-btn" data-chat-question="What is SynergyLens?">What is SynergyLens?</button>
+          <button type="button" class="project-chat-question-btn" data-chat-question="What is ComboScore?">What is ComboScore?</button>
+          <button type="button" class="project-chat-question-btn" data-chat-question="What is NSC?">What is NSC?</button>
+        </div>
+      </div>
+
+      <form class="project-chat-form" id="project-chat-form">
+        <label class="sr-only" for="project-chat-input">Ask the Project Assistant</label>
+        <input type="text" id="project-chat-input" placeholder="Ask a project question..." autocomplete="off">
+        <button type="submit" id="project-chat-send">Send</button>
+      </form>
+
+      <div class="project-chat-resize-handle project-chat-resize-handle--right" data-chat-resize="right" aria-hidden="true"></div>
+      <div class="project-chat-resize-handle project-chat-resize-handle--bottom" data-chat-resize="bottom" aria-hidden="true"></div>
+      <div class="project-chat-resize-handle project-chat-resize-handle--corner" data-chat-resize="corner" aria-hidden="true"></div>
+    </section>
+  </aside>
+</body>
+</html>

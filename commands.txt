@@ -1,0 +1,14 @@
+cd C:\Users\HP\Downloads\sdp_app
+.\venv\Scripts\python.exe app.py
+
+Ctrl + F5
+
+SHAP explain still works with the same test case:
+drug1_id=740
+drug2_id=754143
+cell_line=OVCAR-3
+cancer_type=Ovarian Cancer
+
+
+venv\scripts\activate
+python app.py
