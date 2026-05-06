@@ -19,3 +19,6 @@ taskkill /PID [PID] /F
 
 netstat -ano | findstr ":5000" | findstr "LISTENING"
 taskkill /PID <PID_NUMBER> /F
+
+
+flask run --port 5001
