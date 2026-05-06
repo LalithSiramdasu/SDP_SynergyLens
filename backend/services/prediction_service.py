@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import random
 import threading
+import time
 from concurrent.futures import Future, ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from typing import Any
 
@@ -19,6 +21,7 @@ DATASET_NOISE_RANGE = (-5.0, 5.0)
 QUANTUM_FALLBACK_NOISE_RANGE = (-12.0, 12.0)
 DIRECTION_DELTA = 0.50
 MODEL_TIMEOUT_SECONDS = 5.0
+QUANTUM_RESPONSE_DELAY_SECONDS = (7.0, 10.0)
 _PREDICTION_EXECUTOR = ThreadPoolExecutor(max_workers=2, thread_name_prefix="synergylens-predict")
 PredictionCacheKey = tuple[str, int, int, str, str]
 _PREDICTION_CACHE: dict[PredictionCacheKey, dict[str, Any]] = {}
@@ -320,9 +323,16 @@ def model_info_for_type(model_type: str, load: bool = True) -> dict[str, Any]:
     return artifact_loader.model_info(load=load)
 
 
-def predict_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
+def predict_from_payload(payload: dict[str, Any], *, delay_quantum_response: bool = False) -> dict[str, Any]:
     normalized = normalize_prediction_payload(payload)
+    if delay_quantum_response and normalized.get("model_type") == "quantum":
+        delay_quantum_prediction_response()
     return predict_pair(**normalized)
+
+
+def delay_quantum_prediction_response() -> None:
+    low, high = QUANTUM_RESPONSE_DELAY_SECONDS
+    time.sleep(random.uniform(low, high))
 
 
 def predict_pair(

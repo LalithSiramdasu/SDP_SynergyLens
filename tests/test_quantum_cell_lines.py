@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from unittest import mock
 
 from app import app
 from backend.config import Config
@@ -46,16 +47,22 @@ class QuantumCellLineTests(unittest.TestCase):
         self.assertIn("score", data)
 
     def test_quantum_prediction_accepts_supported_cell_line(self):
-        response = self.client.post(
-            "/api/predict",
-            json={"NSC1": 740, "NSC2": 754143, "CELLNAME": "OVCAR-3", "model_type": "quantum"},
-        )
+        with (
+            mock.patch("backend.services.prediction_service.random.uniform", return_value=7.5) as uniform_mock,
+            mock.patch("backend.services.prediction_service.time.sleep") as sleep_mock,
+        ):
+            response = self.client.post(
+                "/api/predict",
+                json={"NSC1": 740, "NSC2": 754143, "CELLNAME": "OVCAR-3", "model_type": "quantum"},
+            )
 
         data = response.get_json()
         self.assertEqual(response.status_code, 200, data)
         self.assertTrue(data["success"])
         self.assertEqual(data["model_type"], "quantum")
         self.assertIn("score", data)
+        uniform_mock.assert_called_once_with(7.0, 10.0)
+        sleep_mock.assert_called_once_with(7.5)
 
     def test_quantum_prediction_rejects_unsupported_cell_line_cleanly(self):
         unsupported_cell_line = self._unsupported_quantum_cell_line()

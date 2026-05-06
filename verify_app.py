@@ -95,7 +95,10 @@ def run() -> int:
         expect_error_json(client.get("/api/molecule/999999999"), "/api/molecule invalid drug")
         molecule_pair = expect_success_json(client.post("/api/molecule-pair", json={"NSC1": payload["NSC1"], "NSC2": payload["NSC2"]}), "/api/molecule-pair")
         expect(molecule_pair["molecule_1"].get("found") is True and molecule_pair["molecule_2"].get("found") is True, "/api/molecule-pair did not resolve both molecules")
-        expect_success_json(client.get(f"/api/drug_info/{payload['NSC1']}"), "/api/drug_info/<id>")
+        quantum_molecule_pair = expect_success_json(client.post("/api/molecule-pair", json={"NSC1": 3053, "NSC2": 180973, "model_type": "quantum"}), "/api/molecule-pair quantum")
+        expect(quantum_molecule_pair["NSC1"].get("mechanism") and quantum_molecule_pair["NSC2"].get("description"), "/api/molecule-pair quantum missing local molecule metadata")
+        drug_info = expect_success_json(client.get(f"/api/drug_info/{payload['NSC1']}"), "/api/drug_info/<id>")
+        expect("mechanism" in drug_info and "description" in drug_info, "/api/drug_info/<id> missing profile metadata fields")
 
         explanation = expect_success_json(client.post("/api/explain", json=payload), "/api/explain")
         expect(explanation.get("features"), "/api/explain missing features")

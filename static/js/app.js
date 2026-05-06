@@ -509,15 +509,12 @@ async function loadModelPerformance() {
 function renderModelPerformance(data) {
   const assets = data.assets || {};
   const modelSummary = data.model_summary || {};
-  const performance = data.performance || {};
-  const deployedAverage = performance.deployed_final_average || {};
 
   setText("performance-cell-lines", assets.total_cell_lines ?? "--");
   setText("performance-drugs", assets.total_drugs ?? "--");
   setText("performance-features", `${assets.feature_vector ?? "--"} features`);
   setText("performance-models", assets.final_model_count ?? modelSummary.total_models ?? "--");
   setText("model-performance-explanation", data.explanation || "Model performance summary loaded from project result files.");
-  setText("performance-average-summary", formatPerformanceSummary(deployedAverage));
 
   const status = document.getElementById("model-performance-status");
   if (status) {
@@ -526,12 +523,10 @@ function renderModelPerformance(data) {
   }
 
   renderModelTypeCounts(modelSummary.count_per_model_type || {});
-  renderPerformanceRows(performance.by_model_type || []);
 }
 
 function renderModelPerformanceError(message) {
   setText("model-performance-explanation", "Model performance summary could not be loaded.");
-  setText("performance-average-summary", cleanError(message));
   const status = document.getElementById("model-performance-status");
   if (status) {
     status.textContent = "Unavailable";
@@ -541,11 +536,6 @@ function renderModelPerformanceError(message) {
   const modelCounts = document.getElementById("model-type-counts");
   if (modelCounts) {
     modelCounts.innerHTML = `<span class="model-count-empty">${escapeHtml(cleanError(message))}</span>`;
-  }
-
-  const tableBody = document.getElementById("performance-table-body");
-  if (tableBody) {
-    tableBody.innerHTML = `<tr><td colspan="5">${escapeHtml(cleanError(message))}</td></tr>`;
   }
 }
 
@@ -574,42 +564,6 @@ function renderModelTypeCounts(counts) {
     </div>
   `).join("");
 }
-
-function renderPerformanceRows(rows) {
-  const tableBody = document.getElementById("performance-table-body");
-  if (!tableBody) {
-    return;
-  }
-
-  if (!rows.length) {
-    tableBody.innerHTML = `<tr><td colspan="5">Average performance metrics are unavailable.</td></tr>`;
-    return;
-  }
-
-  tableBody.innerHTML = rows.map((row) => `
-    <tr>
-      <td>${escapeHtml(row.model || "")}</td>
-      <td class="mono">${escapeHtml(formatMetric(row.mean_r2_score, 3))}</td>
-      <td class="mono">${escapeHtml(formatMetric(row.mean_pearson_rp, 3))}</td>
-      <td class="mono">${escapeHtml(formatMetric(row.mean_rmse, 2))}</td>
-      <td class="mono">${escapeHtml(formatMetric(row.mean_mae, 2))}</td>
-    </tr>
-  `).join("");
-}
-
-function formatPerformanceSummary(summary) {
-  if (!summary || !Number.isFinite(Number(summary.mean_r2_score))) {
-    return "Average performance metrics are loaded from saved project result files when available.";
-  }
-
-  return [
-    `Final deployed models average R2 ${formatMetric(summary.mean_r2_score, 3)}`,
-    `Pearson Rp ${formatMetric(summary.mean_pearson_rp, 3)}`,
-    `RMSE ${formatMetric(summary.mean_rmse, 2)}`,
-    `MAE ${formatMetric(summary.mean_mae, 2)}`
-  ].join(" | ");
-}
-
 function formatMetric(value, digits = 3) {
   const number = Number(value);
   return Number.isFinite(number) ? number.toFixed(digits) : "n/a";
@@ -3062,6 +3016,7 @@ function restoreExplainPanel() {
 }
 
 function normalizeExplanationResponse(data) {
+  const rawFeatures = normalizeShapRecords(data.features || [], 0);
   const positive = normalizeShapRecords(
     data.top_positive_contributors || data.top_synergy_drivers || [],
     1
@@ -3070,7 +3025,10 @@ function normalizeExplanationResponse(data) {
     data.top_negative_contributors || data.top_antagonism_drivers || [],
     -1
   );
-  const features = negative.concat(positive)
+  const contributorRecords = positive.length || negative.length
+    ? negative.concat(positive)
+    : rawFeatures;
+  const features = contributorRecords
     .sort((a, b) => Math.abs(b.shap) - Math.abs(a.shap))
     .slice(0, 14)
     .reverse();
@@ -3085,7 +3043,14 @@ function normalizeExplanationResponse(data) {
     prediction: Number(data.final_predicted_COMBOSCORE ?? data.prediction ?? 0),
     baseValue: data.base_value ?? data.expected_value ?? null,
     summary: data.plain_english_explanation || data.explanation_summary || data.suggestion || "",
-    explanationAvailable: data.explanation_available !== false
+    explanationAvailable: data.explanation_available !== false,
+    explanationType: data.explanation_type || "",
+    explanationMethod: data.explanation_method || "",
+    explanationLabel: data.explanation_label || "",
+    limitationNote: data.limitation_note || data.model_limitation_note || "",
+    surrogateNote: data.surrogate_note || "",
+    quantumPredictionUsed: Boolean(data.quantum_prediction_used),
+    surrogateExplanationUsed: Boolean(data.surrogate_explanation_used)
   };
 }
 
@@ -3110,6 +3075,7 @@ function normalizeShapRecords(records, fallbackSign) {
 function renderExplanation(data) {
   document.getElementById("shap-empty").hidden = true;
   document.getElementById("shap-content").hidden = false;
+  hideExplanationMethodNote();
 
   const themeColors = getThemeChartColors();
   const labels = data.features.map((feature) => feature.feature);
@@ -3123,20 +3089,24 @@ function renderExplanation(data) {
 
   setText("shap-prediction", prediction);
   setText("shap-base", baseValue);
-  setText("shap-base-info", data.summary || (
-    data.baseValue === null || data.baseValue === undefined
-      ? `Final prediction: ${prediction}. Base value was not returned by the explainer.`
-      : `Base value: ${baseValue}. Final prediction: ${prediction}.`
-  ));
+  setText("shap-base-info", explanationSummaryText(data, prediction, baseValue));
 
   const chartShell = document.querySelector(".chart-shell");
-  if (!data.features.length && !data.explanationAvailable) {
+  if (!data.features.length) {
     if (state.shapChart) {
       state.shapChart.destroy();
       state.shapChart = null;
     }
     if (chartShell) {
-      chartShell.innerHTML = `<div class="shap-fallback-list"><p>${escapeHtml(data.summary || "Detailed feature explanation is not available for the selected model.")}</p></div>`;
+      const fallbackMessage = data.explanationType === "classical_surrogate_for_quantum"
+        ? "Feature-level explanation is not available for the selected model."
+        : (data.summary || "Feature-level explanation is not available for the selected model.");
+      chartShell.innerHTML = `
+        <div class="shap-unavailable-card">
+          <strong>${escapeHtml(data.explanationMethod || "XAI unavailable")}</strong>
+          <p>${escapeHtml(fallbackMessage)}</p>
+        </div>
+      `;
     }
     return;
   }
@@ -3203,6 +3173,29 @@ function renderExplanation(data) {
     }
   });
 
+}
+
+function explanationSummaryText(data, prediction, baseValue) {
+  if (data.explanationType === "classical_surrogate_for_quantum") {
+    return data.baseValue === null || data.baseValue === undefined
+      ? `Final prediction: ${prediction}. Base value was not returned by the explainer.`
+      : `Base value: ${baseValue}. Final prediction: ${prediction}.`;
+  }
+
+  return data.summary || (
+    data.baseValue === null || data.baseValue === undefined
+      ? `Final prediction: ${prediction}. Base value was not returned by the explainer.`
+      : `Base value: ${baseValue}. Final prediction: ${prediction}.`
+  );
+}
+
+function hideExplanationMethodNote() {
+  const note = document.getElementById("shap-method-note");
+  if (!note) {
+    return;
+  }
+  note.hidden = true;
+  note.innerHTML = "";
 }
 
 function renderShapFallback(container, features) {
@@ -3336,6 +3329,13 @@ function normalizeMolecule(raw, title) {
     aliasUsed: Boolean(raw?.alias_used ?? raw?.used_alias),
     molecularFormula: raw?.molecular_formula || "",
     molecularWeight: raw?.molecular_weight || "",
+    mechanism: raw?.mechanism || "",
+    targets: raw?.targets || "",
+    drugClass: raw?.drug_class || raw?.class || "",
+    indications: raw?.indications || "",
+    sideEffects: raw?.side_effects || "",
+    administrationRoute: raw?.administration_route || "",
+    description: raw?.description || "",
     source: raw?.source || "",
     svg,
     structureAvailable,
@@ -3391,6 +3391,12 @@ function moleculeCardShell(molecule, index) {
           ${molecule.structureAvailable ? "" : `<div class="drug-meta-row drug-meta-row--notice"><span>Fallback note</span><span>${escapeHtml(molecule.fallbackDetail)}</span></div>`}
           <div class="drug-meta-row"><span>Molecular Formula</span><span>${escapeHtml(formulaText)}</span></div>
           <div class="drug-meta-row"><span>Molecular Weight</span><span>${escapeHtml(String(weightText))}</span></div>
+          ${molecule.mechanism ? `<div class="drug-meta-row"><span>Mechanism</span><span>${escapeHtml(molecule.mechanism)}</span></div>` : ""}
+          ${molecule.targets ? `<div class="drug-meta-row"><span>Targets</span><span>${escapeHtml(molecule.targets)}</span></div>` : ""}
+          ${molecule.drugClass ? `<div class="drug-meta-row"><span>Class</span><span>${escapeHtml(molecule.drugClass)}</span></div>` : ""}
+          ${molecule.indications ? `<div class="drug-meta-row"><span>Indications</span><span>${escapeHtml(molecule.indications)}</span></div>` : ""}
+          ${molecule.administrationRoute ? `<div class="drug-meta-row"><span>Route</span><span>${escapeHtml(molecule.administrationRoute)}</span></div>` : ""}
+          ${molecule.description ? `<div class="drug-meta-row"><span>Description</span><span>${escapeHtml(molecule.description)}</span></div>` : ""}
           <div class="drug-meta-row"><span>Structure Source</span><span>${escapeHtml(molecule.source || "n/a")}</span></div>
         </div>
       </div>

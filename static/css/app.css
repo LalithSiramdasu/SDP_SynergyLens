@@ -1861,6 +1861,32 @@ input::placeholder {
   padding: 12px 0 6px;
 }
 
+.xai-method-note,
+.shap-unavailable-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  border-radius: 16px;
+  background: var(--surface-card);
+}
+
+.xai-method-note strong,
+.shap-unavailable-card strong {
+  color: var(--accent-strong);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.xai-method-note p,
+.shap-unavailable-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
 .shap-fallback-list {
   display: grid;
   gap: 12px;

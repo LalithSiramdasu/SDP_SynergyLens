@@ -25,6 +25,17 @@ LIMITATION_NOTE = (
     "This explanation reflects model feature contributions for the deployed artifact; "
     "it does not prove a biological mechanism."
 )
+QUANTUM_SURROGATE_LABEL = "Quantum prediction + classical surrogate XAI"
+QUANTUM_SURROGATE_NOTE = (
+    "The prediction score is from the quantum model. Feature impacts are shown using a classical "
+    "surrogate explanation because native quantum SHAP is not available."
+)
+QUANTUM_SURROGATE_SUMMARY = (
+    "Quantum prediction was selected. Since native feature-level quantum SHAP is not available, "
+    "this XAI map uses the classical model as a surrogate explanation for the same drug pair and "
+    "cell line. The prediction score remains from the quantum pipeline."
+)
+QUANTUM_SURROGATE_LIMITATION = "This is a surrogate explanation, not a native explanation of the quantum model."
 
 
 def explain_prediction(payload: dict[str, Any]) -> dict[str, Any]:
@@ -32,7 +43,47 @@ def explain_prediction(payload: dict[str, Any]) -> dict[str, Any]:
     prediction = predict_pair(**normalized)
     if normalized.get("model_type") == "quantum":
         final_score = float(prediction["final_predicted_COMBOSCORE"])
-        unavailable_message = "Detailed feature explanation is not available for the selected quantum model."
+        try:
+            input_frame = build_feature_vector(
+                normalized["nsc1"],
+                normalized["nsc2"],
+                normalized["cell_line"],
+                normalized.get("cancer_type") or None,
+            )
+            features, base_value = get_feature_contributions(input_frame, limit=14)
+            positive = [feature for feature in features if feature["shap_value"] >= 0][:7]
+            negative = [feature for feature in features if feature["shap_value"] < 0][:7]
+        except Exception as exc:
+            return {
+                "input": prediction["input"],
+                "prediction": round(final_score, 3),
+                "final_predicted_COMBOSCORE": round(final_score, 3),
+                "prediction_label": prediction["prediction_label"],
+                "model_used": prediction["model_used"],
+                "model_type": "quantum",
+                "base_value": None,
+                "expected_value": None,
+                "features": [],
+                "top_positive_contributors": [],
+                "top_negative_contributors": [],
+                "top_synergy_drivers": [],
+                "top_antagonism_drivers": [],
+                "plain_english_explanation": QUANTUM_SURROGATE_SUMMARY,
+                "explanation_summary": QUANTUM_SURROGATE_SUMMARY,
+                "model_limitation_note": QUANTUM_SURROGATE_LIMITATION,
+                "limitation_note": QUANTUM_SURROGATE_LIMITATION,
+                "surrogate_note": QUANTUM_SURROGATE_NOTE,
+                "disclaimer": DISCLAIMER,
+                "suggestion": QUANTUM_SURROGATE_NOTE,
+                "explanation_available": False,
+                "explanation_type": "classical_surrogate_for_quantum",
+                "explanation_method": "Classical surrogate XAI",
+                "explanation_label": QUANTUM_SURROGATE_LABEL,
+                "quantum_prediction_used": True,
+                "surrogate_explanation_used": False,
+                "surrogate_error": str(exc),
+            }
+
         return {
             "input": prediction["input"],
             "prediction": round(final_score, 3),
@@ -40,19 +91,26 @@ def explain_prediction(payload: dict[str, Any]) -> dict[str, Any]:
             "prediction_label": prediction["prediction_label"],
             "model_used": prediction["model_used"],
             "model_type": "quantum",
-            "base_value": None,
-            "expected_value": None,
-            "features": [],
-            "top_positive_contributors": [],
-            "top_negative_contributors": [],
-            "top_synergy_drivers": [],
-            "top_antagonism_drivers": [],
-            "plain_english_explanation": unavailable_message,
-            "explanation_summary": unavailable_message,
-            "model_limitation_note": unavailable_message,
+            "base_value": round(base_value, 3) if base_value is not None else None,
+            "expected_value": round(base_value, 3) if base_value is not None else None,
+            "features": features,
+            "top_positive_contributors": positive,
+            "top_negative_contributors": negative,
+            "top_synergy_drivers": positive,
+            "top_antagonism_drivers": negative,
+            "plain_english_explanation": f"{QUANTUM_SURROGATE_SUMMARY} {QUANTUM_SURROGATE_NOTE}",
+            "explanation_summary": QUANTUM_SURROGATE_SUMMARY,
+            "model_limitation_note": QUANTUM_SURROGATE_LIMITATION,
+            "limitation_note": QUANTUM_SURROGATE_LIMITATION,
+            "surrogate_note": QUANTUM_SURROGATE_NOTE,
             "disclaimer": DISCLAIMER,
-            "suggestion": unavailable_message,
-            "explanation_available": False,
+            "suggestion": QUANTUM_SURROGATE_NOTE,
+            "explanation_available": bool(features),
+            "explanation_type": "classical_surrogate_for_quantum",
+            "explanation_method": "Classical surrogate XAI",
+            "explanation_label": QUANTUM_SURROGATE_LABEL,
+            "quantum_prediction_used": True,
+            "surrogate_explanation_used": bool(features),
         }
 
     input_frame = build_feature_vector(

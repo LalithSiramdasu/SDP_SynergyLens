@@ -215,6 +215,7 @@ def molecule_payload(
         "message": structure_message,
         "error": "",
         "rdkit_available": True,
+        **_local_drug_metadata(nsc),
     }
 
 
@@ -270,6 +271,37 @@ def _base_profile(
         "nsc": nsc,
         "NSC": nsc,
         "source": "molecules/drug_mols.pkl",
+        **_local_drug_metadata(nsc),
+    }
+
+
+def _local_drug_metadata(nsc: int) -> dict[str, Any]:
+    try:
+        drug_info = artifact_loader.load_explain_drug_info()
+    except Exception:
+        return {}
+
+    if "drug_id" not in drug_info.columns:
+        return {}
+    rows = drug_info[drug_info["drug_id"].astype(str).str.replace(r"\.0$", "", regex=True) == str(int(nsc))]
+    if rows.empty:
+        return {}
+
+    row = rows.iloc[0]
+    metadata = {
+        "mechanism": row.get("mechanism", ""),
+        "targets": row.get("targets", ""),
+        "drug_class": row.get("class", ""),
+        "class": row.get("class", ""),
+        "indications": row.get("indications", ""),
+        "side_effects": row.get("side_effects", ""),
+        "administration_route": row.get("administration_route", ""),
+        "description": row.get("description", ""),
+        "metadata_source": "models/explain_drug - Sheet1 (1).csv",
+    }
+    return {
+        key: "" if value is None or str(value) == "nan" else str(value).strip()
+        for key, value in metadata.items()
     }
 
 

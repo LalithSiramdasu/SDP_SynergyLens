@@ -33,6 +33,14 @@ def api_drug_info(drug_id: int):
         "weight": molecule.get("molecular_weight") or "n/a",
         "iupac": "n/a",
         "metadata_source": molecule.get("source") or "local fallback",
+        "mechanism": molecule.get("mechanism") or "",
+        "targets": molecule.get("targets") or "",
+        "class": molecule.get("drug_class") or molecule.get("class") or "",
+        "indications": molecule.get("indications") or "",
+        "side_effects": molecule.get("side_effects") or "",
+        "administration_route": molecule.get("administration_route") or "",
+        "description": molecule.get("description") or "",
+        "structure_available": bool(molecule.get("structure_available")),
+        "structure_message": molecule.get("structure_message") or molecule.get("message") or "",
     }
     return success_response(data, **data)
-

@@ -333,6 +333,7 @@
               <p id="explain-loader-message" class="prediction-loader-message">Validating prediction input...</p>
             </div>
             <div id="shap-content" class="chart-content" hidden>
+              <aside id="shap-method-note" class="xai-method-note" hidden></aside>
               <div class="chart-shell"><canvas id="shap-chart"></canvas></div>
               <div class="meta-grid">
                 <article class="meta-card"><span>Prediction</span><strong id="shap-prediction">--</strong></article>
@@ -549,27 +550,6 @@
               <p>Final Step 6 deployment uses one selected model per cell line.</p>
               <div id="model-type-counts" class="model-count-list">
                 <span class="model-count-empty">Loading model counts...</span>
-              </div>
-            </article>
-
-            <article class="performance-card">
-              <h3>Average Test Performance</h3>
-              <p id="performance-average-summary">Loading performance metrics...</p>
-              <div class="table-shell performance-table-shell">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Model</th>
-                      <th>Mean R2</th>
-                      <th>Mean Pearson Rp</th>
-                      <th>Mean RMSE</th>
-                      <th>Mean MAE</th>
-                    </tr>
-                  </thead>
-                  <tbody id="performance-table-body">
-                    <tr><td colspan="5">Loading model performance...</td></tr>
-                  </tbody>
-                </table>
               </div>
             </article>
           </div>
