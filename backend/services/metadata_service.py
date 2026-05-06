@@ -12,6 +12,7 @@ from backend.services.validation_service import (
     is_predictable_cell_line,
     is_predictable_drug,
     normalize_drug_id,
+    normalize_model_type,
     resolve_cell_line,
 )
 
@@ -37,7 +38,15 @@ def home_context() -> dict[str, Any]:
     }
 
 
-def available_cell_lines() -> list[str]:
+def quantum_supported_cell_lines() -> list[str]:
+    available = set(artifact_loader.load_cell_line_directory().values())
+    return [cell_line for cell_line in Config.QUANTUM_SUPPORTED_CELL_LINES if cell_line in available]
+
+
+def available_cell_lines(model_type: str = "classical") -> list[str]:
+    normalized_model_type = normalize_model_type(model_type)
+    if normalized_model_type == "quantum":
+        return quantum_supported_cell_lines()
     return sorted(artifact_loader.load_cell_line_directory().values())
 
 
@@ -106,6 +115,8 @@ def about_metadata() -> dict[str, Any]:
         "detected_dataset_files": [item["name"] for group in ("models", "data") for item in artifacts.get(group, []) if item["name"].endswith(".csv")],
         "number_of_available_drugs": int(len(drug_directory)),
         "number_of_available_cell_lines": int(len(cell_directory)),
+        "quantum_supported_cell_lines": quantum_supported_cell_lines(),
+        "quantum_supported_cell_line_count": len(quantum_supported_cell_lines()),
         "number_of_feature_columns": int(len(feature_columns)),
         "molecule_data_availability": {
             "available": bool(molecule_status["available"]),
@@ -171,6 +182,8 @@ def system_summary() -> dict[str, Any]:
             "Interpret the final score using cut4-aligned bands: antagonistic below -4, neutral/weak from -4 to +4, synergistic above +4.",
         ],
         "score_thresholds": score_thresholds(),
+        "quantum_supported_cell_lines": quantum_supported_cell_lines(),
+        "quantum_supported_cell_line_count": len(quantum_supported_cell_lines()),
         "endpoints": endpoint_summary(),
     }
 

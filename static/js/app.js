@@ -19,6 +19,10 @@ const state = {
   drugs: [],
   drugIds: new Set(),
   cellLines: [],
+  cellLinesByModel: {
+    classical: [],
+    quantum: []
+  },
   drugsLoaded: false,
   cellLinesLoaded: false,
   drugLoadError: "",
@@ -665,16 +669,27 @@ function normalizeDrugList(data) {
     .filter((drug) => drug.id);
 }
 
-async function loadCellLines() {
+async function loadCellLines(modelType = getSelectedModelType()) {
+  const normalizedModelType = modelType === "quantum" ? "quantum" : "classical";
+  const cached = state.cellLinesByModel[normalizedModelType] || [];
+  if (cached.length) {
+    applyCellLineList(cached, normalizedModelType);
+    refreshAllValidation();
+    return;
+  }
+
+  state.cellLinesLoaded = false;
+  state.cellLineLoadError = "";
+  fillCellLineSelect("cell-line", [], "Loading cell lines...");
+  fillCellLineSelect("ecell-line", [], "Loading cell lines...");
+  refreshAllValidation();
+
   try {
-    const data = await apiJson(API.cellLines);
-    state.cellLines = normalizeCellLineList(data);
-    state.cellLinesLoaded = true;
-    state.cellLineLoadError = "";
-    fillCellLineSelect("cell-line", state.cellLines);
-    fillCellLineSelect("ecell-line", state.cellLines);
-    if (state.cellLines.length && document.getElementById("metric-cell-lines")?.textContent === "--") {
-      setText("metric-cell-lines", state.cellLines.length);
+    const data = await apiJson(`${API.cellLines}?model_type=${encodeURIComponent(normalizedModelType)}`);
+    const cellLines = normalizeCellLineList(data);
+    state.cellLinesByModel[normalizedModelType] = cellLines;
+    if (getSelectedModelType() === normalizedModelType) {
+      applyCellLineList(cellLines, normalizedModelType);
     }
   } catch (error) {
     state.cellLinesLoaded = false;
@@ -684,6 +699,17 @@ async function loadCellLines() {
     showAlert("predict-alert", `Cell-line list failed to load: ${error.message}`);
   } finally {
     refreshAllValidation();
+  }
+}
+
+function applyCellLineList(cellLines, modelType) {
+  state.cellLines = cellLines;
+  state.cellLinesLoaded = true;
+  state.cellLineLoadError = "";
+  fillCellLineSelect("cell-line", state.cellLines);
+  fillCellLineSelect("ecell-line", state.cellLines);
+  if (modelType === "classical" && state.cellLines.length && document.getElementById("metric-cell-lines")?.textContent === "--") {
+    setText("metric-cell-lines", state.cellLines.length);
   }
 }
 
@@ -992,11 +1018,14 @@ function reloadHistoryItem(index) {
 
   setDrugFieldValue("drug1-input", "drug1-id", record.NSC1);
   setDrugFieldValue("drug2-input", "drug2-id", record.NSC2);
-  setSelectValueWhenAvailable("cell-line", record.CELLNAME, false);
   const modelSelect = document.getElementById("model-type");
   if (modelSelect) {
     modelSelect.value = record.model_type;
   }
+  loadCellLines(record.model_type).then(() => {
+    setSelectValueWhenAvailable("cell-line", record.CELLNAME, false);
+    refreshAllValidation();
+  });
   clearAlert("predict-alert");
   switchView("predict");
   refreshAllValidation();
@@ -1179,6 +1208,10 @@ function bindLiveValidation() {
       select.addEventListener("change", refreshAllValidation);
       select.addEventListener("input", refreshAllValidation);
     }
+  });
+
+  document.getElementById("model-type")?.addEventListener("change", () => {
+    loadCellLines(getSelectedModelType());
   });
 }
 

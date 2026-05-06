@@ -37,7 +37,8 @@ def api_drugs():
 
 @about_bp.get("/api/cell-lines")
 def api_cell_lines():
-    cell_lines = metadata_service.available_cell_lines()
+    model_type = request.args.get("model_type", "classical")
+    cell_lines = metadata_service.available_cell_lines(model_type=model_type)
     return success_response(
         {"cell_lines": cell_lines, "count": len(cell_lines)},
         cell_lines=cell_lines,

@@ -5,6 +5,7 @@ from typing import Any
 
 import pandas as pd
 
+from backend.config import Config
 from backend.services import artifact_loader
 from backend.utils.errors import ValidationError
 
@@ -138,6 +139,10 @@ def resolve_cell_line(value: Any) -> str:
     raise ValidationError(f"Cell line '{requested}' is not available.", code="CELL_LINE_NOT_FOUND")
 
 
+def is_quantum_supported_cell_line(value: Any) -> bool:
+    return str(value or "").strip() in Config.QUANTUM_SUPPORTED_CELL_LINES
+
+
 def is_predictable_cell_line(value: Any) -> bool:
     try:
         resolved = resolve_cell_line(value)
@@ -170,6 +175,15 @@ def normalize_prediction_payload(data: dict[str, Any] | None) -> dict[str, Any]:
     cell_line = resolve_cell_line(cell_value)
     cancer_type = _first_value(data, CANCER_KEYS)
     model_type = normalize_model_type(_first_value(data, MODEL_TYPE_KEYS))
+    if model_type == "quantum" and not is_quantum_supported_cell_line(cell_line):
+        raise ValidationError(
+            "Quantum model currently supports only selected cell lines.",
+            code="QUANTUM_CELL_LINE_UNSUPPORTED",
+            details={
+                "requested_cell_line": cell_line,
+                "supported_cell_lines": list(Config.QUANTUM_SUPPORTED_CELL_LINES),
+            },
+        )
 
     return {
         "nsc1": drug1["nsc"],

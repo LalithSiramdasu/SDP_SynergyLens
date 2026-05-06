@@ -50,6 +50,7 @@ class Config:
     QUANTUM_FEATURE_MATRIX_FILE = "X_small_pca.pkl"
     QUANTUM_TARGET_CSV_FILE = "y_small.csv"
     QUANTUM_TARGET_PICKLE_FILE = "y_small.pkl"
+    QUANTUM_SUPPORTED_CELL_LINES = ("OVCAR-3", "HL-60(TB)", "MCF7", "ACHN", "PC-3")
 
     GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL_NAME") or os.getenv("GEMINI_MODEL") or "gemini-3-flash-preview"
     GEMINI_REQUEST_TIMEOUT_SECONDS = float(os.getenv("GEMINI_REQUEST_TIMEOUT_SECONDS", "12"))

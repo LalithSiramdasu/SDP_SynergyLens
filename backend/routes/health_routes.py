@@ -4,6 +4,7 @@ from flask import Blueprint
 
 from backend.config import Config
 from backend.services import artifact_loader
+from backend.services.metadata_service import quantum_supported_cell_lines
 from backend.utils.response import success_response
 
 
@@ -33,11 +34,14 @@ def api_health():
         available_cell_lines = int(artifact_loader.load_cell_line_features().shape[0])
     if artifacts["feature_columns_loaded"]:
         feature_count = int(len(artifact_loader.load_feature_columns()))
+    quantum_cell_lines = quantum_supported_cell_lines()
 
     data = {
         "status": "ok" if not errors else "degraded",
         "app": Config.APP_NAME,
         "artifacts": artifacts,
+        "quantum_supported_cell_lines": quantum_cell_lines,
+        "quantum_supported_cell_line_count": len(quantum_cell_lines),
     }
     return success_response(
         data,
@@ -47,6 +51,8 @@ def api_health():
         feature_column_count=feature_count,
         model_count=artifact_loader.deployed_model_count(),
         model_loaded=artifacts["model_loaded"],
+        quantum_supported_cell_lines=quantum_cell_lines,
+        quantum_supported_cell_line_count=len(quantum_cell_lines),
         shap_available=artifacts["model_loaded"],
         chat_backend="Gemini + Built-in Guide" if artifact_loader.configured_gemini_key_count() else "Built-in Guide",
         errors=errors,

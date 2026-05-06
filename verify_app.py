@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from app import app
+from backend.config import Config
 from backend.services import artifact_loader
 
 
@@ -75,7 +76,11 @@ def run() -> int:
         performance = expect_success_json(client.get("/api/model-performance-summary"), "/api/model-performance-summary")
         expect(performance["assets"]["final_model_count"] == artifact_loader.deployed_model_count(), "/api/model-performance-summary model count mismatch")
         expect_success_json(client.get("/api/drugs?limit=all"), "/api/drugs")
-        expect_success_json(client.get("/api/cell-lines"), "/api/cell-lines")
+        cell_lines = expect_success_json(client.get("/api/cell-lines"), "/api/cell-lines")
+        classical_cell_lines = expect_success_json(client.get("/api/cell-lines?model_type=classical"), "/api/cell-lines classical")
+        quantum_cell_lines = expect_success_json(client.get("/api/cell-lines?model_type=quantum"), "/api/cell-lines quantum")
+        expect(cell_lines["cell_lines"] == classical_cell_lines["cell_lines"], "/api/cell-lines classical should match default")
+        expect(quantum_cell_lines["cell_lines"] == list(Config.QUANTUM_SUPPORTED_CELL_LINES), "/api/cell-lines quantum list mismatch")
         expect_success_json(client.get("/api/demo-cases"), "/api/demo-cases")
 
         prediction = expect_success_json(client.post("/api/predict", json=payload), "/api/predict")
