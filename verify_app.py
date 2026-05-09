@@ -58,6 +58,26 @@ def expect_molecule_graceful(response, route: str) -> dict:
     return data
 
 
+def expect_demo_predictions(client, demo_response: dict) -> None:
+    expected_categories = {"synergistic", "neutral", "antagonistic"}
+    demos = demo_response.get("demo_cases") or demo_response.get("data", {}).get("demo_cases") or []
+    expect(len(demos) == 3, "/api/demo-cases should return exactly three curated cases")
+    expect({demo.get("case_type") for demo in demos} == expected_categories, "/api/demo-cases category mismatch")
+
+    for demo in demos:
+        prediction = expect_success_json(
+            client.post(
+                "/api/predict",
+                json={"NSC1": demo["NSC1"], "NSC2": demo["NSC2"], "CELLNAME": demo["CELLNAME"]},
+            ),
+            f"/api/predict demo {demo['case_type']}",
+        )
+        expect(
+            prediction.get("prediction_category") == demo["case_type"],
+            f"/api/demo-cases {demo['case_type']} predicts as {prediction.get('prediction_category')}",
+        )
+
+
 def run() -> int:
     payload = sample_payload()
     quantum_payload = {"NSC1": 740, "NSC2": 754143, "CELLNAME": "OVCAR-3", "model_type": "quantum"}
@@ -81,7 +101,8 @@ def run() -> int:
         quantum_cell_lines = expect_success_json(client.get("/api/cell-lines?model_type=quantum"), "/api/cell-lines quantum")
         expect(cell_lines["cell_lines"] == classical_cell_lines["cell_lines"], "/api/cell-lines classical should match default")
         expect(quantum_cell_lines["cell_lines"] == list(Config.QUANTUM_SUPPORTED_CELL_LINES), "/api/cell-lines quantum list mismatch")
-        expect_success_json(client.get("/api/demo-cases"), "/api/demo-cases")
+        demo_response = expect_success_json(client.get("/api/demo-cases"), "/api/demo-cases")
+        expect_demo_predictions(client, demo_response)
 
         prediction = expect_success_json(client.post("/api/predict", json=payload), "/api/predict")
         expect("score" in prediction and "label" in prediction, "/api/predict missing score/label")

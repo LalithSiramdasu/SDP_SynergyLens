@@ -30,6 +30,37 @@ DEFAULT_CANCER_TYPES = [
 ]
 
 
+CURATED_DEMO_CASES = [
+    {
+        "case_type": "antagonistic",
+        "NSC1": 740,
+        "NSC2": 754143,
+        "CELLNAME": "OVCAR-3",
+        "cancer_type": "Ovarian Cancer",
+        "real_score": -10.44444444,
+        "cut4": 0,
+    },
+    {
+        "case_type": "neutral",
+        "NSC1": 82151,
+        "NSC2": 119875,
+        "CELLNAME": "OVCAR-3",
+        "cancer_type": "Ovarian Cancer",
+        "real_score": 1.111111111,
+        "cut4": 0,
+    },
+    {
+        "case_type": "synergistic",
+        "NSC1": 3053,
+        "NSC2": 180973,
+        "CELLNAME": "OVCAR-3",
+        "cancer_type": "Ovarian Cancer",
+        "real_score": 30.66666667,
+        "cut4": 1,
+    },
+]
+
+
 def home_context() -> dict[str, Any]:
     return {
         "cell_lines": [],
@@ -206,6 +237,10 @@ def endpoint_summary() -> list[dict[str, str]]:
 
 
 def demo_cases() -> dict[str, Any]:
+    curated_cases = [_build_curated_demo_case(case) for case in CURATED_DEMO_CASES]
+    if all(curated_cases):
+        return {"demo_cases": curated_cases}
+
     frame = artifact_loader.load_demo_source_rows()
     cases = [
         _pick_demo_case(frame, "synergistic", lambda score: score > 20, lambda score: score > 4, ascending=False),
@@ -213,6 +248,31 @@ def demo_cases() -> dict[str, Any]:
         _pick_demo_case(frame, "antagonistic", lambda score: score < -20, lambda score: score < -4, ascending=True),
     ]
     return {"demo_cases": [case for case in cases if case]}
+
+
+def _build_curated_demo_case(case: dict[str, Any]) -> dict[str, Any] | None:
+    nsc1 = normalize_drug_id(case.get("NSC1"))
+    nsc2 = normalize_drug_id(case.get("NSC2"))
+    cell_line_raw = case.get("CELLNAME")
+    if not nsc1 or not nsc2 or not is_predictable_drug(nsc1) or not is_predictable_drug(nsc2):
+        return None
+    if not is_predictable_cell_line(cell_line_raw):
+        return None
+
+    score = float(case["real_score"])
+    return {
+        "case_type": str(case["case_type"]),
+        "display_label": _demo_display_label(str(case["case_type"])),
+        "NSC1": int(nsc1),
+        "NSC2": int(nsc2),
+        "CELLNAME": resolve_cell_line(cell_line_raw),
+        "drug1_name": get_drug_display_name(nsc1),
+        "drug2_name": get_drug_display_name(nsc2),
+        "cancer_type": str(case.get("cancer_type") or "").strip(),
+        "real_score": round(score, 2),
+        "score": round(score, 2),
+        "cut4": int(case["cut4"]) if case.get("cut4") is not None else None,
+    }
 
 
 def _pick_demo_case(
